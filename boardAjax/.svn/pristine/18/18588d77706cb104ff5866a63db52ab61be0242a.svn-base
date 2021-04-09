@@ -1,0 +1,29 @@
+package com.lime.common.service;
+
+
+import java.util.List;
+import java.util.Map;
+
+import org.springframework.stereotype.Service;
+
+import com.lime.account.vo.AccountVO;
+
+import egovframework.rte.psl.dataaccess.util.EgovMap;
+@Service
+public interface CommonService {
+
+	List<EgovMap> selectCombo(Map<String, Object> inOutMap) throws Exception;
+	
+	void insertAccount(Map<String, Object> inOutMap) throws Exception;
+	
+	int selectMaxAccountSeq() throws Exception;
+
+	Map<String, Object> selectAccount(int account_seq);
+
+	List<AccountVO> selectAccountList();
+
+	int updateAccount(Map<String, Object> inOutMap);
+
+	List<Map<String, Object>> selectAccountListByMap();
+
+}

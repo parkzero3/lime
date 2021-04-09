@@ -1,0 +1,58 @@
+package ino.web.freeBoard.service;
+
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import org.mybatis.spring.SqlSessionTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import ino.web.freeBoard.dto.FreeBoardDto;
+
+@Service
+public class FreeBoardService {
+
+	@Autowired
+	private SqlSessionTemplate sqlSessionTemplate;
+	
+	public List freeBoardList(String searchKey, String searchWord, int startNum, int endNum){
+		
+		Map<String, String> param = new HashMap<String, String>();
+		param.put("searchKey", searchKey);
+		param.put("searchWord", searchWord);
+		param.put("startNum", startNum + "");
+		param.put("endNum", endNum + "");
+		
+		return sqlSessionTemplate.selectList("freeBoardGetList", param);
+	}
+	
+	public List freeBoardList2(){
+		return sqlSessionTemplate.selectList("freeBoardGetList2");
+	}
+	
+	public void freeBoardInsertPro(FreeBoardDto dto){
+		sqlSessionTemplate.insert("freeBoardInsertPro", dto);
+	}
+	
+	public FreeBoardDto getDetailByNum(int num){
+		return sqlSessionTemplate.selectOne("freeBoardDetailByNum", num);
+	}
+
+	public void freeBoardEditPro(FreeBoardDto dto) {
+		sqlSessionTemplate.update("freeBoardEditPro", dto);
+	}
+
+	public void freeBoardDeletePro(int num) {
+		sqlSessionTemplate.delete("freeBoardDeletePro", num);
+	}
+
+	public int cntAllRecords(String searchKey, String searchWord) {
+		// 게시판 글 개수 가져오기
+		Map<String, String> param = new HashMap<String, String>();
+		param.put("searchKey", searchKey);
+		param.put("searchWord", searchWord);
+
+		return sqlSessionTemplate.selectOne("freeBoardGetCnt", param);
+	}	
+}

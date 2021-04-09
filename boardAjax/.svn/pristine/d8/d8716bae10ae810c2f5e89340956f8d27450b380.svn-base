@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Login">
+
+	<resultMap id="userVO" type="com.lime.user.vo.UserVO">
+		<result property="user_seq" column="user_seq"/>
+		<result property="user_id" column="user_id"/>
+		<result property="pwd" column="pwd"/>
+		<result property="user_name" column="user_name"/>
+		<result property="reg_dt" column="reg_dt"/>
+	</resultMap>
+
+	<select id="userInsertCheck" parameterType="String" resultType="int" >
+		select count(*) from user_tb where user_id =#{user_id}
+	</select>
+
+	<insert id ="userInsert" parameterType="userVO" >
+		<selectKey resultType="int" keyProperty="user_seq" order="BEFORE">
+        SELECT USER_SEQ.NEXTVAL FROM dual        
+   		</selectKey> 
+   		Insert into user_tb (user_seq, user_id, pwd, user_name,reg_dt)
+   		Values (#{user_seq},#{user_id},#{pwd},#{user_name},to_char(sysdate,'YY/MM/DD'))
+	</insert>
+	
+		<select id="loginCntChk" resultType="int" parameterType="map">
+		SELECT COUNT(*) FROM user_tb WHERE user_id=#{user_id} AND PWD=#{pwd}
+	</select>
+	
+	<select id="loginChk" resultType="userVO" parameterType="map">
+		SELECT * FROM user_tb WHERE user_id=#{user_id} AND PWD=#{pwd}
+	</select>
+</mapper>

@@ -1,0 +1,91 @@
+package com.lime.login.controller;
+
+import java.io.IOException;
+import java.sql.SQLException;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Controller;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.ModelAndView;
+import org.springframework.web.servlet.view.json.MappingJackson2JsonView;
+
+import com.lime.common.service.CommonService;
+import com.lime.login.service.LoginService;
+import com.lime.user.vo.UserVO;
+import com.lime.util.CommUtils;
+
+
+@Controller
+public class LoginController{
+
+
+	@Resource(name = "jsonView")
+	private MappingJackson2JsonView jsonView;
+	@Resource(name="commonService")
+	private CommonService commonService;	
+	@Resource(name="loginService")
+	private LoginService loginService;
+
+	@RequestMapping(value="/login/login.do")
+	public String loginview(HttpServletRequest request) {
+		
+		return "/login/login";
+	}
+
+	@RequestMapping(value="/idCkedAjax.do", method=RequestMethod.POST)
+	public ModelAndView idCkedAjax(HttpServletRequest request, HttpSession session , HttpServletResponse resp, String user_id, String pwd ) throws Exception {
+		
+		/*Map<String, Object> inOutMap  = CommUtils.getFormParam(request);*/
+
+		UserVO userVO = new UserVO();
+
+		System.out.println(user_id + " " + pwd);
+		int cnt = loginService.loginCntChk(user_id,pwd);
+		
+		System.out.println("cnt++++++++"+cnt);
+		
+		if(cnt > 0 ){
+			userVO = loginService.loginChk(user_id, pwd);
+			System.out.println("userVO"+userVO);
+		}else {
+			System.out.println("else");
+			return new ModelAndView("/login/login","flag",999);
+		}
+		
+		if(userVO != null){
+			request.getSession().setAttribute("user", userVO);
+			UserVO user = (UserVO)request.getSession().getAttribute("user");
+			
+			return new ModelAndView("redirect:/account/accountList.do");
+		}
+		else{
+			return new ModelAndView("/login/login","flag",999);
+		}
+	/*	return new ModelAndView(jsonView, inOutMap);*/
+	}
+	
+
+	@RequestMapping(value="/login/logout.do")
+	public ModelAndView logout(HttpSession session)throws Exception{
+		
+		System.out.println("logout");
+		
+		session.invalidate();
+		ModelAndView mav = new ModelAndView("redirect:/");
+		
+		return mav;
+	}
+	
+	
+}// end of class
+
+	

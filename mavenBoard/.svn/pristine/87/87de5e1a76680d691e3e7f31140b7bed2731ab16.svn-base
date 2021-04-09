@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+  
+<mapper namespace="ino.web.fileBoard.mapper.FileBoardMapper" >
+
+	<select id="fileBoardGetList" resultType="fileBoardDto" parameterType="map"> <!-- resultType="ino.web.board.dto.BoardDto" -->
+		 
+		SELECT NUM, TITLE, NAME, TO_CHAR(REGDATE,'YYYY/MM/DD') REGDATE, CONTENT FROM FILEBOARD
+
+		ORDER BY LPAD( NUM, 5 ) DESC
+		
+	</select>
+	
+	<insert id="fileBoardInsertPro" parameterType="fileBoardDto">
+		<selectKey resultType="int" keyProperty="num" order="BEFORE">
+        SELECT FILEBOARDNUM_SEQ.NEXTVAL FROM dual        
+   		</selectKey> 
+		INSERT INTO FILEBOARD(NUM, TITLE, NAME, REGDATE, CONTENT)
+		VALUES( #{num}, #{title}, #{name}, sysdate, #{content} )
+	</insert>
+	
+	
+	<insert id="fileDataInsertPro" parameterType="fileDataDto">
+	<selectKey resultType="int" keyProperty="boardnum" order="BEFORE">
+         SELECT MAX(NUM) FROM FILEBOARD
+         </selectKey>
+      INSERT INTO FILEDATA (NUM, BOARDNUM, ORINAME, CHGNAME, REGDATE, USAGE)
+      VALUES( FILEDATANUM_SEQ.NEXTVAL, #{boardnum}, #{oriname}, #{chgname}, sysdate, 0)
+   </insert>
+	
+	<insert id="fileDataUpdatePro" parameterType="fileDataDto">
+	  insert into filedata (num, boardnum, oriname, chgname, regdate, usage) 
+	  values (filedatanum.nextval, #{boardnum}, #{oriname}, #{chgname}, sysdate, 0);
+	</insert>
+	
+	<update id ="fileBoardUpdate" parameterType="fileBoardDto">
+		update fileBoard set title=#{title} , content=#{content}, regdate=sysdate where num =#{num}
+	</update>
+	
+	<select id="fileBoardDetailByNum" resultType="fileBoardDto" parameterType="int">
+		SELECT FILEBOARD.NUM, TITLE, NAME, TO_CHAR(FILEBOARD.REGDATE,'YYYY/MM/DD')REGDATE, CONTENT, FILEDATA.CHGNAME FROM FILEBOARD
+		 LEFT JOIN FILEDATA ON FILEDATA.BOARDNUM = FILEBOARD.NUM
+		 WHERE FILEBOARD.NUM=#{num}
+	</select>
+
+	<update id ="fileBoardEditPro" parameterType="fileBoardDto">
+		update fileBoard set title=#{title} , content=#{content}, regdate=sysdate where num =#{num}
+	</update>
+	<update id="fileDataEditPro" parameterType="fileDataDto">	
+		update fileData set oriname=#{oriname}, chgname=#{chgname} where num=#{num} and boardnum = #{boardnum}
+	</update>
+	
+	<delete id="fileBoardDeletePro" parameterType="int">
+		delete from fileBoard where num=#{num}
+	</delete>
+	<delete id="fileDataDeletePro" parameterType="int">
+		delete from fileData where boardNum=#{num}
+	</delete>
+</mapper>

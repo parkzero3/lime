@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="Login">
+
+	<resultMap id="userVO" type="com.lime.user.vo.UserVO">
+		<result property="userSeq" column="User_seq"/>
+		<result property="userId" column="user_id"/>
+		<result property="pwd" column="pwd"/>
+		<result property="userName" column="user_name"/>
+		<result property="regDt" column="reg_dt"/>
+	</resultMap>
+
+	<select id="userInsertCheck" parameterType="String" resultType="int" >
+		select count(*) from user_tb where user_id =#{userId}
+	</select>
+
+	<insert id ="userInsert" parameterType="userVO" >
+		<selectKey resultType="int" keyProperty="userSeq" order="BEFORE">
+        SELECT USER_SEQ.NEXTVAL FROM dual        
+   		</selectKey> 
+   		Insert into user_tb (user_Seq, user_id, pwd, user_Name,reg_dt)
+   		Values (#{userSeq},#{userId},#{pwd},#{userName},to_char(sysdate,'YY/MM/DD'))
+	</insert>
+</mapper>

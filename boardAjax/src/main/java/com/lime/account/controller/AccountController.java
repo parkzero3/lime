@@ -1,0 +1,376 @@
+package com.lime.account.controller;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+import javax.annotation.Resource;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpServletResponse;
+import javax.servlet.http.HttpSession;
+
+import org.apache.poi.ss.usermodel.CellStyle;
+import org.apache.poi.xssf.usermodel.XSSFCell;
+import org.apache.poi.xssf.usermodel.XSSFRow;
+import org.apache.poi.xssf.usermodel.XSSFSheet;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.springframework.stereotype.Controller;
+import org.springframework.ui.ModelMap;
+import org.springframework.web.bind.annotation.ModelAttribute;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestMethod;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.servlet.view.json.MappingJackson2JsonView;
+
+import com.lime.account.service.AccountService;
+import com.lime.account.vo.AccountVO;
+import com.lime.account.vo.PageVO;
+import com.lime.common.service.CommonService;
+import com.lime.user.vo.UserVO;
+import com.lime.util.CommUtils;
+
+import egovframework.example.sample.service.SampleDefaultVO;
+import egovframework.rte.fdl.property.EgovPropertyService;
+import egovframework.rte.psl.dataaccess.util.EgovMap;
+import egovframework.rte.ptl.mvc.tags.ui.pagination.PaginationInfo;
+import egovframework.rte.ptl.mvc.tags.ui.pagination.PaginationRenderer;
+import egovframework.rte.ptl.mvc.tags.ui.pagination.PaginationManager;
+
+@Controller
+public class AccountController {
+
+
+	@Resource(name = "jsonView")
+	private MappingJackson2JsonView jsonView;
+
+	@Resource(name="accountService")
+	private AccountService accountService;
+
+	@Resource(name="commonService")
+	private CommonService commonService;
+	
+	
+	@Resource(name = "propertiesService")
+	protected EgovPropertyService propertiesService;
+
+
+	/**
+	 *
+	 * @param searchVO - 조회할 정보가 담긴 SampleDefaultVO
+	 * @param model
+	 * @return "egovSampleList"
+	 * @exception Exception
+	 */
+
+	@RequestMapping(value = "/account/accountList.do")
+	public String selectSampleList(HttpServletRequest request, ModelMap model,AccountVO accountVO, PageVO page) throws Exception {
+
+		PaginationInfo paginationInfo = new PaginationInfo();
+		  int pageNo = 1;
+	      int listScale = 5;
+	      int pageScale = 5;
+	      
+	      
+	      if(page.getPageNo() > 0){
+	         pageNo = page.getPageNo();
+	      }
+	      
+	      paginationInfo.setCurrentPageNo(pageNo);
+	      System.out.println("페이지NO ========="+paginationInfo.getFirstPageNo());
+	      paginationInfo.setRecordCountPerPage(listScale);
+	      paginationInfo.setPageSize(pageScale);
+
+	      System.out.println("현재 페이지 번호"+paginationInfo.getCurrentPageNo());
+	      System.out.println("한 페이지당 게시되는 게시물 건 수"+paginationInfo.getRecordCountPerPage());
+	      System.out.println("페이지 리스트에 게시되는 페이지 건수"+paginationInfo.getPageSize());
+
+	      int startPage = paginationInfo.getFirstRecordIndex()+1;
+	      int lastPage = paginationInfo.getLastRecordIndex();
+
+	      accountVO.setStartPage(startPage);
+	      accountVO.setLastPage(lastPage);
+
+	      System.out.println("스타트페이지!!!!!!!!"+startPage);
+	      System.out.println("라스트페이지!!!!!!!!"+lastPage);
+	      
+	      int totalList = commonService.selectAccountCountList(page);
+	      paginationInfo.setTotalRecordCount(totalList);
+
+	      System.out.println("페이지 스타트"+startPage);
+	      System.out.println("페이지 라스트"+lastPage);
+	      System.out.println("페이지 리스트의 첫 페이지 번호"+paginationInfo.getFirstPageNo());
+	      System.out.println("페이지 리스트의 라스트페이지 번호"+paginationInfo.getLastPageNoOnPageList());
+	      System.out.println("페이지 개수"+paginationInfo.getTotalPageCount());
+	      System.out.println("전체 게시물 건 수"+paginationInfo.getTotalRecordCount());
+
+	      
+		List<AccountVO> accountList = commonService.selectAccountList(accountVO);
+		
+	    model.put("pageNo", pageNo);
+	    model.put("totalList", totalList);
+		model.put("paginationInfo", paginationInfo);
+		model.put("accountList", accountList);
+		return "/account/accountList";
+	}
+
+	/**
+	 *
+	 * @param request
+	 * @return
+	 * @throws Exception
+	 */
+	@RequestMapping(value="/account/accountInsert.do")
+	public String accountInsert(HttpServletRequest request, ModelMap model, HttpSession session) throws Exception{
+
+		Map<String, Object> inOutMap = new HashMap<>();
+
+		inOutMap.put("category", "A000000");
+		List<EgovMap> resultMap= commonService.selectCombo(inOutMap);
+
+		model.put("resultMap", resultMap);
+
+		return "/account/accountInsert";
+	}
+	
+	
+	@RequestMapping(value="/account/accountInsert/category.do", method=RequestMethod.POST)
+	@ResponseBody
+	public List<EgovMap> accountInsertCategory(HttpServletRequest request) throws Exception{
+
+		Map<String, Object> inOutMap = CommUtils.getFormParam(request); 
+
+		List<EgovMap> result= commonService.selectCombo(inOutMap);
+
+		return result;
+	}
+	
+	@RequestMapping(value="/account/accountInsert/saveAccount.do", method=RequestMethod.POST)
+	public String accountSave(HttpServletRequest request, HttpSession session) throws Exception{
+
+		Map<String, Object> inOutMap = CommUtils.getFormParam(request);
+		
+		UserVO userVO = (UserVO)session.getAttribute("user");
+		inOutMap.put("writer", userVO.getUser_name());
+
+		commonService.insertAccount(inOutMap);
+		int seq = commonService.selectMaxAccountSeq();
+
+		return "redirect:/account/accountUpdate.do?seq=" + seq;
+/*		return "redirect:/account/accountList.do";*/
+	}
+
+	@RequestMapping(value="/account/accountUpdate.do")
+	public String accountUpdate(HttpServletRequest request, ModelMap model, int seq) throws Exception{
+
+		Map<String, Object> inOutMap = new HashMap<String, Object>();
+		
+		Map<String, Object> profitCombo = new HashMap<String, Object>();
+		profitCombo.put("category", "A000000");
+		List<EgovMap> resultMap= commonService.selectCombo(profitCombo);
+
+		int account_seq = seq;
+		
+		inOutMap = commonService.selectAccount(account_seq);
+		
+		model.put("resultMap", resultMap);
+		model.put("account", inOutMap);
+		return"/account/accountUpdate";
+	}
+
+	@RequestMapping(value="/account/accountInsert/editAccount.do", method=RequestMethod.POST)
+	public String editAccount (HttpServletRequest request, HttpSession session) throws Exception{
+
+		System.out.println("editAccount.do");
+		
+		Map<String, Object> inOutMap = CommUtils.getFormParam(request);
+		System.out.println(inOutMap);
+//		UserVO userVO = (UserVO)session.getAttribute("user");
+//		inOutMap.put("writer", userVO.getUser_name());
+
+		int resultCnt = commonService.updateAccount(inOutMap);
+
+		return "redirect:/account/accountUpdate.do?seq=" + inOutMap.get("account_seq").toString();			
+	}
+	
+	@RequestMapping(value="/account/excelDown.do", method=RequestMethod.POST)
+	@ResponseBody
+	public String excelDown(HttpServletRequest request, HttpServletResponse response) throws Exception {
+		/**
+		* @param filePath=엑셀파일을 생성시킬 위치
+		* @param excelName=생설할 엑셀파일의 이름
+		* @param headerList=엑셀파일의 헤더맵
+		* @param list=데이터를 담을 맵
+		* @param data=엑셀파일을 생성할 데이터를 담은 리스트
+		* 꼭 맵을통하여 세팅을 하지 않아도 상관없습니다.
+		*/
+		System.out.println(request.getParameter("pass"));
+		
+		String filePath = "C:\\Users\\lime\\Desktop";
+		
+		Calendar cal = Calendar.getInstance();
+		SimpleDateFormat sdf = new SimpleDateFormat("yyyyMMddHHmmss");
+		String datestr = sdf.format(cal.getTime());
+		System.out.println("now:" + datestr);
+		
+		String excelName = datestr + "_result.xlsx";
+		
+		Map<String,String> headerList = new HashMap<String,String>();
+		Map<String,Object> list = new HashMap<String,Object>();
+		List<Map<String, Object>> data = commonService.selectAccountListByMap();
+//		List<dataType> data = "생성할 리스트를 담습니다.";
+		//headerList를 세팅할 만큼 세팅합니다.
+		headerList.put("0", "수익/비용");
+		headerList.put("1", "관");
+		headerList.put("2", "항");
+		headerList.put("3", "목");
+		headerList.put("4", "과");
+		headerList.put("5", "금액");
+		headerList.put("6", "등록일");
+		headerList.put("7", "작성자");
+	
+		//XSSFWorkbook 세팅
+		XSSFWorkbook workbook = new XSSFWorkbook();
+		XSSFSheet sheet = workbook.createSheet("Sheet1");
+		XSSFRow row = null;
+		XSSFCell cell = null;
+		
+		for(int i=0; i<=data.size(); i++) {
+			//data의 크기만큼 로우를 생성합니다.
+			row=sheet.createRow((short)i);
+			for(int k=0; k<headerList.size(); k++) {
+				//headerList의 크기만큼 i번째 row에 cell을 생성합니다.
+				cell=row.createCell(k);
+				//맨윗줄에 headerList를 세팅합니다.
+				if(i==0) {
+					//CellStyle은 필요에따라서 세팅합니다.
+					CellStyle style = workbook.createCellStyle();
+//					style.setFillForegroundColor("셀color 세팅");
+//					style.setFillPattern("셀의 패턴을 세팅");
+//					style.setAlignment("셀데이터의 정렬조건 세팅");
+//					cell.setCellStyle(style);
+//					sheet.setColumnWidth(index,"셀의 너비");
+					//headerList의 데이터를 세팅
+					cell.setCellValue(headerList.get(Integer.toString(k)));
+				} 
+				//엑셀파일에 넣을 데이터를 세팅합니다.
+				else {
+					//i-1을하는이유는 headerList가 i번쨰 row이기 때문.
+					Map<String, Object> tmp = data.get(i-1); 
+					//리스트의 크기만큼 세팅합니다.
+					if(k == 0) cell.setCellValue(tmp.get("PROFIT_COST").toString());
+					if(k == 1) cell.setCellValue(tmp.get("BIG_GROUP").toString());
+					if(k == 2) cell.setCellValue(tmp.get("MIDDLE_GROUP").toString());
+					if(k == 3) cell.setCellValue(tmp.get("SMALL_GROUP").toString());
+					if(k == 4) cell.setCellValue(tmp.get("DETAIL_GROUP").toString());
+					if(k == 5) cell.setCellValue(tmp.get("TRANSACTION_MONEY").toString());
+					if(k == 6) cell.setCellValue(tmp.get("TRANSACTION_DATE").toString());
+					if(k == 7) cell.setCellValue(tmp.get("WRITER").toString());
+			
+					//cell.setCellValue(list.get(Integer.toString(k)).toString());
+				}
+			}
+		}
+		//엑셀파일 세팅 후 파일 생성
+		try {
+			File file = new File(filePath);
+			//file을 생성할 폴더가 없으면 생성합니다.
+			file.mkdirs();
+			FileOutputStream fileOutputStream = 
+					new FileOutputStream(file+File.separator+excelName);
+			//생성한 엑셀파일을 outputStream 해줍니다.
+			workbook.write(fileOutputStream);
+			fileOutputStream.close();
+		} catch(Exception e) {
+			e.printStackTrace();
+		}
+		
+		return "success";
+	}
+
+
+	/**
+	 *
+	 * @param request
+	 * @return
+	 * @throws Exception
+	@RequestMapping(value="/account/selectCombo.do")
+	public ModelAndView ajaxtest(HttpServletRequest request, HttpSession session) throws Exception{
+		System.out.println("/account/selectCombo.do");
+		UserVO user = (UserVO) session.getAttribute("user");
+		Map<String, Object> inOutMap  = CommUtils.getFormParam(request);
+
+		commonService.selectCombo(inOutMap);
+
+		return new ModelAndView(jsonView, inOutMap);
+	}
+	
+	//엑셀 파일 업로드 
+/*	@RequestMapping(value = "/account/excelUpload.do")
+	public String excelUpload(HttpServletRequest request, ModelMap model) throws Exception {
+
+		Map<String, Object> inOutMap = CommUtils.getFormParam(request);
+		ArrayList<String> columns = new ArrayList<String>();
+		String tbodyData = "";
+		try {
+            FileInputStream file = new FileInputStream("C:\\Users\\lime\\workspace\\boardAjax\\src\\main\\resources\\db\\CODEEXP.xlsx");
+            
+            int rowindex=0;
+            int columnindex=0;
+            //시트 수 (첫번째에만 존재하므로 0을 준다)
+            //만약 각 시트를 읽기위해서는 FOR문을 한번더 돌려준다
+            XSSFSheet sheet= workbook.getSheet("codeMaster");
+            //행의 수
+            int rows=sheet.getPhysicalNumberOfRows();
+            for(rowindex=0;rowindex<rows;rowindex++){
+                //행을읽는다
+            	tbodyData += "<tr align=\'center\'>";
+            	
+                XSSFRow row=sheet.getRow(rowindex);
+                if(row !=null){
+                    //셀의 수
+                    int cells=row.getPhysicalNumberOfCells();
+                    for(columnindex=0; columnindex<=cells; columnindex++){
+                    	// columnindex: 열 // rowindex: 행
+                    	tbodyData += "<td style=\'text-align: center;\'>";
+                        //셀값을 읽는다
+                        XSSFCell cell=row.getCell(columnindex);
+                        String value="";
+                        //셀이 빈값일경우를 위한 널체크
+                        if(cell==null){
+                            continue;
+                        }else{
+                        		cell.setCellType(cell.CELL_TYPE_STRING);
+                                value=cell.getStringCellValue()+"";
+                        }
+                        
+                        if(rowindex == 0) columns.add(value);
+                        else { // rowindex <= 1
+                        	
+                        	inOutMap.put(columns.get(columnindex), value);
+                        }
+                        tbodyData += value + "</td>";
+                        System.out.println(rowindex+"번 행 : "+columnindex+"번 열 값은: "+value);
+                    }
+ 
+                }
+                tbodyData += "</tr>";
+            }
+ 
+        }catch(Exception e) {
+            e.printStackTrace();
+        }
+		
+		model.put("tbodyData", tbodyData);
+		model.put("inOutMap", inOutMap);
+		return "/account/accountList";
+	}
+*/
+
+}// end of calss

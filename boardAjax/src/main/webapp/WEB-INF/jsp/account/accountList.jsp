@@ -1,0 +1,147 @@
+<%@ page language="java" contentType="text/html; charset=UTF-8" pageEncoding="UTF-8"%>
+<%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core" %>
+<%@ taglib prefix="form" uri="http://www.springframework.org/tags/form" %>
+<%@ taglib prefix="ui" uri="http://egovframework.gov/ctl/ui"%>
+<%@ taglib prefix="spring" uri="http://www.springframework.org/tags"%>
+<%@ taglib prefix="ui" uri="http://egovframework.gov/ctl/ui"%>
+
+
+<script type="text/javascript">
+
+function linkPage(pageNo) {
+
+	location.href = "./accountList.do?pageNo="+pageNo;
+}
+
+$(function(){
+	
+/* 	console.log("${tbodyData}");
+	$("#tbodyData").append("${tbodyData}"); */
+	
+	$('#excelDown').click(function(){
+		var url = "./excelDown.do";
+		console.log(url)
+		$.ajax({
+	         url : "./excelDown.do"
+	         ,type : "post"
+	         ,data : {'pass' : '1'}
+	         ,success : function(result){
+	        	 console.log(result);
+	        	 
+	        	if(result == 'success') {
+	        		alert('엑셀파일 다운이 완료되었습니다.');
+	        	} else{
+	        		alert('경고');
+	        	}
+	         }
+	         ,error : function(){
+	        	 console.log('error');
+	         }
+	      })
+	});
+});
+
+function tableToJson(table) {
+    var myRows = [];
+    var title = [];
+    var $headers = $("th");
+    $("th").each(function(index, item) {
+        title[index] = $(item).html();
+    });
+ 
+    var $rows = $("tbody tr").each(
+            function(index) {
+                $cells = $(this).find("td");
+                myRows[index] = {};
+                $cells.each(function(cellIndex) {
+                    myRows[index][$($headers[cellIndex]).html()] = $(
+                            this).html();
+                });
+            });
+ 
+    var myObj = {};
+    myObj = myRows;
+ 
+    var myJson = JSON.stringify(myObj);
+    return [ title, myJson ];
+}
+
+function excelDown() {
+    if (confirm("엑셀파일로 저장하시겠습니까?") == true) {
+        var myTable = $("table");
+        var rows = $("table > tbody > tr").length;
+        var columns = $("table > thead > tr > th").length;
+        if (rows < 2) {
+            alert("엑셀파일로 저장할 데이터가 없습니다.");
+            return;
+        }
+        var dataParam = tableToJson(myTable);
+        var myTitle = dataParam[0].toString();
+        var myContents = dataParam[1];
+        var name = "Table To Excel Example";
+        var form = "<form action='./excelDown.do' method='post'>";
+        form += "<input type='hidden' name='title' value='" + myTitle + "' />";
+        form += "<input type='hidden' name='contents' value='" + myContents + "' />";
+        form += "<input type='hidden' name='name' value='" + name + "' />";
+        form += "<input type='hidden' name='rows' value='" + rows + "' />";
+        form += "<input type='hidden' name='columns' value='" + columns + "' />";
+        form += "</form>";
+                
+        jQuery(form).appendTo("body").submit().remove();
+    }
+}
+
+ 
+</script>
+
+<form name="sendForm" id="sendForm" method="post" onsubmit="return false;">
+<input type="hidden" id="situSeq" name="situSeq" value="">
+<input type="hidden" id="mode" name="mode" value="Cre">
+
+<div id="wrap"  class="col-md-offset-1 col-sm-10" >
+		<div align="center"><h2>회계정보리스트</h2></div>
+		<div class="form_box2 col-md-offset-7" align="right" >
+			<div class="right" >
+				<button class="btn btn-primary" onclick="location.href='./accountInsert.do'" >등록</button>
+				<button class="btn btn-primary" id="excelDown">엑셀 다운</button>
+				<button class="btn btn-primary" id="excelUpload">엑셀 업로드</button>
+			</div>
+		</div>
+	    <br/>
+		<table class="table table-hover">
+			    <thead>
+			      <tr align="center">
+			        <th style="text-align: center;" >수익/비용</th>
+			        <th style="text-align: center;" >관</th>  
+			        <th style="text-align: center;" >항</th>
+			        <th style="text-align: center;" >목</th>
+			        <th style="text-align: center;" >과</th>
+			        <th style="text-align: center;" >금액</th>
+			        <th style="text-align: center;" >등록일</th>
+			        <th style="text-align: center;" >작성자</th>
+			      </tr>
+			    </thead>
+			    <tbody id="tbodyData">
+			    	<c:forEach items="${accountList }" var="account">
+			    	 	
+			    	 	<tr align="center">
+				    		<td style="text-align: center;" ><a href="./accountUpdate.do?seq=${account.account_seq }">${account.profit_cost }</a></td>
+				    		<td style="text-align: center;" ><a href="./accountUpdate.do?seq=${account.account_seq }">${account.big_group }</a></td>
+				    		<td style="text-align: center;" ><a href="./accountUpdate.do?seq=${account.account_seq }">${account.middle_group }</a></td>
+				    		<td style="text-align: center;" ><a href="./accountUpdate.do?seq=${account.account_seq }">${account.small_group }</a></td>
+				    		<td style="text-align: center;" ><a href="./accountUpdate.do?seq=${account.account_seq }">${account.detail_group }</a></td>
+				    		<td style="text-align: center;" ><a href="./accountUpdate.do?seq=${account.account_seq }">${account.transaction_money }</a></td>
+				    		<td style="text-align: center;" ><a href="./accountUpdate.do?seq=${account.account_seq }">${account.transaction_date }</a></td>
+				    		<td style="text-align: center;" ><a href="./accountUpdate.do?seq=${account.account_seq }">${account.writer }</a></td>
+		    			</tr>
+			    	</c:forEach>
+			    </tbody>
+			</table>
+			<!-- paging navigation --> 
+  		<div id="paging" align="center">
+				<ui:pagination paginationInfo="${paginationInfo}" type="image" jsFunction="linkPage" />		
+		</div> 
+</div>
+</form>
+
+

@@ -1,0 +1,125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace = "Common">
+
+	<!-- 	코드 테이블 에서 셀렉트 박스 리스트 검색 -->
+	<select id="selectCombo" parameterType="map" resultType="egovMap">
+		SELECT
+		  CODE,
+		  COM_KOR
+		FROM CODE_MASTER
+		WHERE
+			CATEGORY = #{category}
+		AND
+			USE_YN     ='Y'
+		ORDER BY COM_KOR
+	</select>
+	<select id= "selectAccountCountList" resultType="int">
+		SELECT COUNT(*) FROM ACCOUNT_TB
+	</select>
+	<select id="selectAccountList" resultType="com.lime.account.vo.AccountVO" parameterType="int" >
+ 		SELECT * FROM
+		(SELECT A.*,
+		ROWNUM AS RNUM
+		FROM( 
+		SELECT ACCOUNT_SEQ, 
+    	CASE WHEN A.COM_KOR IS NULL THEN '해당없음' ELSE A.COM_KOR END PROFIT_COST, 
+    		CASE WHEN B.COM_KOR IS NULL THEN '해당없음' ELSE B.COM_KOR END BIG_GROUP,
+   		 	CASE WHEN C.COM_KOR IS NULL THEN '해당없음' ELSE C.COM_KOR END MIDDLE_GROUP,
+    		CASE WHEN D.COM_KOR IS NULL THEN '해당없음' ELSE D.COM_KOR END SMALL_GROUP,
+    		CASE WHEN E.COM_KOR IS NULL THEN '해당없음' ELSE E.COM_KOR END DETAIL_GROUP,
+    		COMMENTS, TRANSACTION_MONEY, TO_CHAR(TRANSACTION_DATE, 'yyyy-MM-dd') as transaction_date, WRITER, TO_CHAR(REG_DATE, 'yyyy-MM-dd') as reg_date
+    	FROM ACCOUNT_TB
+		LEFT JOIN CODE_MASTER A ON ACCOUNT_TB.PROFIT_COST = A.CODE
+		LEFT JOIN CODE_MASTER B ON ACCOUNT_TB.BIG_GROUP = B.CODE
+		LEFT JOIN CODE_MASTER C ON ACCOUNT_TB.MIDDLE_GROUP = C.CODE
+		LEFT JOIN CODE_MASTER D ON ACCOUNT_TB.SMALL_GROUP = D.CODE
+		LEFT JOIN CODE_MASTER E ON ACCOUNT_TB.DETAIL_GROUP = E.CODE
+		ORDER BY ACCOUNT_SEQ
+		) A
+		WHERE
+		ROWNUM &lt;= #{lastPage}
+		)
+		WHERE
+		RNUM &gt;= #{startPage} 
+		
+	</select>
+	
+	<select id="selectAccountListByMap" resultType="map">
+		SELECT ACCOUNT_SEQ, 
+    		CASE WHEN A.COM_KOR IS NULL THEN '해당없음' ELSE A.COM_KOR END PROFIT_COST, 
+    		CASE WHEN B.COM_KOR IS NULL THEN '해당없음' ELSE B.COM_KOR END BIG_GROUP,
+   		 	CASE WHEN C.COM_KOR IS NULL THEN '해당없음' ELSE C.COM_KOR END MIDDLE_GROUP,
+    		CASE WHEN D.COM_KOR IS NULL THEN '해당없음' ELSE D.COM_KOR END SMALL_GROUP,
+    		CASE WHEN E.COM_KOR IS NULL THEN '해당없음' ELSE E.COM_KOR END DETAIL_GROUP,
+    		CASE WHEN COMMENTS IS NULL THEN '' ELSE COMMENTS END COMMENTS, 
+    		TRANSACTION_MONEY, 
+    		TO_CHAR(TRANSACTION_DATE, 'yyyy-MM-dd') AS TRANSACTION_DATE , 
+    		WRITER, 
+    		TO_CHAR(REG_DATE, 'yyyy-MM-dd') AS REG_DATE
+    	FROM ACCOUNT_TB
+		LEFT JOIN CODE_MASTER A ON ACCOUNT_TB.PROFIT_COST = A.CODE
+		LEFT JOIN CODE_MASTER B ON ACCOUNT_TB.BIG_GROUP = B.CODE
+		LEFT JOIN CODE_MASTER C ON ACCOUNT_TB.MIDDLE_GROUP = C.CODE
+		LEFT JOIN CODE_MASTER D ON ACCOUNT_TB.SMALL_GROUP = D.CODE
+		LEFT JOIN CODE_MASTER E ON ACCOUNT_TB.DETAIL_GROUP = E.CODE
+		ORDER BY ACCOUNT_SEQ
+	</select>
+	
+	<insert id="insertAccount" parameterType="map" >
+		INSERT INTO 
+		account_tb 
+		(account_seq, profit_cost, big_group,middle_group, small_group, detail_group, comments, transaction_money, transaction_date, writer, reg_date)
+		VALUES(ACCOUNT_SEQ.NEXTVAL,
+                #{profit_cost},
+                #{big_group},
+                #{middle_group},
+                #{small_group},
+                #{detail_group},
+                #{comments},
+                #{transaction_money},
+                to_date(#{transaction_date}, 'yyyy-mm-dd'),
+                #{writer},
+                SYSDATE
+            )
+	</insert>
+	
+	<select id="selectMaxAccountSeq" resultType="int">
+		SELECT MAX(ACCOUNT_SEQ) FROM ACCOUNT_TB
+	</select>
+	
+	<select id="selectAccountBySeq" parameterType="int" resultType="map">
+		SELECT ACCOUNT_SEQ, PROFIT_COST, BIG_GROUP, MIDDLE_GROUP, SMALL_GROUP, DETAIL_GROUP,
+    		A.COM_KOR AS COM_KOR_PROFIT_COST, 
+		    B.COM_KOR AS COM_KOR_BIG_GROUP,
+		    C.COM_KOR AS COM_KOR_MIDDLE_GROUP,
+		    D.COM_KOR AS COM_KOR_SMALL_GROUP,
+		    E.COM_KOR AS COM_KOR_DETAIL_GROUP,
+		    COMMENTS, 
+		    TRANSACTION_MONEY, TO_CHAR(TRANSACTION_DATE, 'yyyy-MM-dd') AS TRANSACTION_DATE, 
+		    WRITER, TO_CHAR(REG_DATE, 'yyyy-MM-dd') AS REG_DATE
+    	FROM ACCOUNT_TB
+		LEFT JOIN CODE_MASTER A ON ACCOUNT_TB.PROFIT_COST = A.CODE
+		LEFT JOIN CODE_MASTER B ON ACCOUNT_TB.BIG_GROUP = B.CODE
+		LEFT JOIN CODE_MASTER C ON ACCOUNT_TB.MIDDLE_GROUP = C.CODE
+		LEFT JOIN CODE_MASTER D ON ACCOUNT_TB.SMALL_GROUP = D.CODE
+		LEFT JOIN CODE_MASTER E ON ACCOUNT_TB.DETAIL_GROUP = E.CODE
+		WHERE ACCOUNT_SEQ = #{account_seq}
+	</select>
+	
+	<update id="updateAccount" parameterType="map">
+		UPDATE ACCOUNT_TB
+			SET 
+				PROFIT_COST = #{profit_cost},
+				BIG_GROUP = #{big_group},
+				MIDDLE_GROUP = #{middle_group},
+				SMALL_GROUP = #{small_group},
+				DETAIL_GROUP = #{detail_group},
+				COMMENTS = #{comments},
+				TRANSACTION_MONEY = #{transaction_money},
+				TRANSACTION_DATE = #{transaction_date}
+		WHERE ACCOUNT_SEQ = #{account_seq}
+	
+	</update>
+</mapper>
